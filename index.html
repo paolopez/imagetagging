@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Demo</title>
+</head>
+<style type="text/css">
+img{
+	width:500px;
+	height:500px;
+}
+</style>
+<body>
+<div style="width: 100%; height: 80px; font-size: 70px; text-align: center; background-color: #2cadba;">
+	Demo
+</div>
+<div>
+<div id="page-wrapper">
+	<div style="text-align: center; margin-padding: 100px;">
+		Select an image file:
+		<input type="file" id="fileInput"> 
+	</div>
+
+	<div id="prediction" style="text-align: center;">
+		 
+
+		<span>Select Model: </span><select name="models" id="model">
+			<option value="aaa03c23b3724a16a56b629203edc62c">General</option>
+			<option value="bd367be194cf45149e75f01d59f77ba7">Food</option>
+			<option value="e466caa0619f444ab97497640cefc4dc">Celebrity</option>
+			<option value="eeed0b6733a644cea07cf4c60f87ebb7">Color</option>
+			<option value="e0be3b9d6a454f0493ac3a30784001ff">Apparel</option>
+			<option value="a403429f2ddf4b49b307e318f00e528b">Face Detection</option>
+			<option value="e9576d86d2004ed1a38ba0cf39ecb4b1">NSFW</option>
+			<option value="eee28c313d69466f836ab83287a54ed9">Travel</option>
+			<option value="c386b7a870114f4a87477c0824499348">Wedding</option>
+		</select>
+		<input type="button" id="predict" value="Predict">
+	</div>
+	<div style="text-align: center;" id="fileDisplayArea" ></div>
+<div style="text-align: center;" id="result">
+	<ul id="preferences">
+	</ul>
+</div>
+</div>
+</div>
+</body>
+
+<script type="text/javascript" src="https://sdk.clarifai.com/js/clarifai-latest.js"></script>
+<script>
+  var app = new Clarifai.App(
+    'pQ9_Ar4axvAEDHawGBeh2uRS9XRhwQgJioC7M3Wk',
+    '-4wg4IUgI2ddSKPcKHMRjwGGu_sasmKuLOfz7ZA5'
+  );
+</script>
+
+<script type="text/javascript">
+var predict = document.getElementById('predict');
+var fileInput = document.getElementById('fileInput');
+		var fileDisplayArea = document.getElementById('fileDisplayArea');
+
+
+		predict.addEventListener('click', function(e) {
+			var file = fileInput.files[0];
+			var imageType = /image.*/;
+			var model=document.getElementById('model').value;
+
+			if (file.type.match(imageType)) {
+				var reader = new FileReader();
+
+				reader.onload = function(e) {
+					fileDisplayArea.innerHTML = "";
+
+					var img = new Image();
+					img.src = reader.result;
+
+					fileDisplayArea.appendChild(img);
+					var res=reader.result.split(",")[1];
+					var x="";
+					// predict the contents of an image by passing in a url
+					app.models.predict(model,{base64:res}).then(
+					  function(response) {
+
+					  if(model!='eeed0b6733a644cea07cf4c60f87ebb7'){
+					    response.outputs[0].data.concepts.forEach(function(val,key){
+					    	x+="<li><span style='color:red'>"+val.name+"</span> PROBABILITY: "+val.value+"</li>";
+					    });
+					  }else{
+					  	 response.outputs[0].data.colors.forEach(function(val,key){
+					    	x+="<li><span style='color:red'>"+val.w3c.name+"</span> PROBABILITY: "+val.value+"</li>";
+					    });
+					  }
+
+					    document.getElementById("preferences").innerHTML=x;
+					  },
+					  function(err) {
+					    console.error(err);
+					  }
+					);
+
+				}
+
+				reader.readAsDataURL(file);	
+			} else {
+				fileDisplayArea.innerHTML = "File not supported!"
+			}
+		});
+
+function convertFileToDataURLviaFileReader(url, callback) {
+  var xhr = new XMLHttpRequest();
+  xhr.onload = function() {
+    var reader = new FileReader();
+    reader.onloadend = function() {
+      callback(reader.result);
+    }
+    reader.readAsDataURL(xhr.response);
+  };
+  xhr.open('GET', url);
+  xhr.responseType = 'blob';
+  xhr.send();
+}
+
+var base64img=null;
+var res="";
+function uploadImg(){
+	var file    = document.querySelector('input[type=file]').files[0];
+
+	convertFileToDataURLviaFileReader(file,function(result){
+	document.getElementById('queried_img').setAttribute('src',result);
+	document.getElementById('result').style.display="visible";
+	result=result.split(",")[1];
+	// predict the contents of an image by passing in a url
+	app.models.predict(Clarifai.GENERAL_MODEL,{base64:result}).then(
+	  function(response) {
+
+	    response.outputs[0].data.concepts.forEach(function(val,key){
+	    	res+="<li><span style='color:red'>"+val.name+"</span> PROBABILITY: "+val.value+"</li>";
+	    });
+	    document.getElementById("preferences").innerHTML=res;
+	  },
+	  function(err) {
+	    console.error(err);
+	  }
+	);
+});
+}
+
+</script>
+
+</html>
